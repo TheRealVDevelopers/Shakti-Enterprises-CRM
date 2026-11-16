@@ -1,110 +1,31 @@
-# Frappe Docker
+# Shakthi Enterprises website
 
-[![Build Stable](https://github.com/frappe/frappe_docker/actions/workflows/build_stable.yml/badge.svg)](https://github.com/frappe/frappe_docker/actions/workflows/build_stable.yml)
-[![Build Develop](https://github.com/frappe/frappe_docker/actions/workflows/build_develop.yml/badge.svg)](https://github.com/frappe/frappe_docker/actions/workflows/build_develop.yml)
+Eight-page company website and animated catalogue reader for Firebase Hosting project `shakthi-enterprises-2df21`.
 
-Docker images and orchestration for Frappe applications.
+- Website: https://shakthi-enterprises-2df21.web.app/
+- Catalogue reader / QR destination: https://shakthi-enterprises-2df21.web.app/catalogue
+- Original PDF: `/catalogue.pdf`
+- QR files: `public/assets/catalogue-qr.png` and `catalogue-qr.svg`
 
-## What is this?
+## Publish
 
-This repository handles the containerization of the Frappe stack, including the application server, database, Redis, and supporting services. It provides quick disposable demo setups, a development environment, production-ready Docker images and compose configurations for deploying Frappe applications including ERPNext.
+With an authenticated Firebase CLI account that has access to this project, run from this directory:
 
-## Repository Structure
+    firebase deploy --only hosting --project shakthi-enterprises-2df21
 
-```
-frappe_docker/
-├── docs/                 # Complete documentation
-├── overrides/            # Docker Compose configurations for different scenarios
-├── compose.yaml          # Base Compose File for production setups
-├── pwd.yml               # Single Compose File for quick disposable demo
-├── images/               # Dockerfiles for building Frappe images
-├── development/          # Development environment configurations
-├── devcontainer-example/ # VS Code devcontainer setup
-└── resources/            # Helper scripts and configuration templates
-```
+No build step, paid SDK, database, or Firebase client API key is required for the website. Hosting uses `.firebaserc` and `firebase.json`. Analytics is not enabled.
 
-> This section describes the structure of **this repository**, not the Frappe framework itself.
+## Pages and interactions
 
-### Key Components
+Home, Our Story, Services, Infrastructure, Materials, Quality, Contact and Catalogue each have their own URL. The homepage has an automatic three-slide carousel with manual controls and pause behavior. Scroll reveals respect reduced-motion preferences. Infrastructure includes equipment category filters and accessible enlarged-image dialogs.
 
-- `docs/` - Canonical documentation for all deployment and operational workflows
-- `overrides/` - Opinionated Compose overrides for common deployment patterns
-- `compose.yaml` - Base compose file for production setups (production)
-- `pwd.yml` - Disposable demo environment (non-production)
+The catalogue uses animated two-page spreads on desktop and individual pages on smaller screens. It supports chapter selections, keyboard arrows, touch swipes, enlarged pages and reduced motion. The reader also includes paper-edge shadows, page-edge navigation buttons, an opt-in automatic preview, a progress indicator and a focused reading mode. Catalogue-specific presentation is in `public/catalogue-experience.css`. The QR destination is unchanged.
 
-## Documentation
+## Content and updates
 
-**The official documentation for `frappe_docker` is maintained in the `docs/` folder in this repository.**
+`build_site.py` generates the eight HTML pages from reusable templates and `content-original.html`, which preserves the approved brochure-based content. Run it with Python after changing content. Shared styling is in `public/styles.css` and `public/experience.css`; interactions are in `public/app.js`, `public/experience.js` and `public/flipbook-v2.js`. There is no runtime build dependency: Firebase serves the resulting `public` directory directly. Site content and images are based on the supplied brochure and user-provided images. The WhatsApp enquiry form prepares a message for the visitor to review and send; submissions are not stored by this site.
 
-**New to Frappe Docker?** Read the [Getting Started Guide](docs/getting-started.md) for a comprehensive overview of repository structure, development workflow, custom apps, Docker concepts, and quick start examples.
+The brochure reader uses eight JPEG page images for fast viewing and keeps the original PDF available for download. To update the catalogue, replace `public/catalogue.pdf` and regenerate `public/assets/page-1.jpg` through `page-8.jpg`. Keep the reader URL stable to preserve printed QR codes. Update page titles/count and spread definitions if the document structure changes. `prepare_assets.py` records selected source image paths and QR generation; it requires Pillow and ReportLab and the original local image files. If running that asset helper, always run `build_site.py` afterwards to generate the current animated catalogue instead of the earlier static reader.
 
-If you are already familiar with Frappe, you can jump right into the [different deployment methods](docs/01-getting-started/01-choosing-a-deployment-method.md) and select the one best suited to your use case.
+The PDF lists an earlier website/domain; the supplied original has been preserved unchanged. The live website uses the Firebase address above.
 
-## Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose v2](https://docs.docker.com/compose/)
-- [git](https://docs.github.com/en/get-started/getting-started-with-git/set-up-git)
-
-> For Docker basics and best practices refer to Docker's [documentation](http://docs.docker.com)
-
-## Demo setup
-
-The fastest way to try Frappe is to play in an already set up sandbox, in your browser, click the button below:
-
-<a href="https://labs.play-with-docker.com/?stack=https://raw.githubusercontent.com/frappe/frappe_docker/main/pwd.yml">
-  <img src="https://raw.githubusercontent.com/play-with-docker/stacks/master/assets/images/button.png" alt="Try in PWD"/>
-</a>
-
-### Try on your environment
-
-> **⚠️ Disposable demo only**
->
-> **This setup is intended for quick evaluation. Expect to throw the environment away.** You will not be able to install custom apps to this setup. For production deployments, custom configurations, and detailed explanations, see the full documentation.
-
-First clone the repo:
-
-```sh
-git clone https://github.com/frappe/frappe_docker
-cd frappe_docker
-```
-
-Then run:
-
-```sh
-docker compose -f pwd.yml up -d
-```
-
-Wait for a couple of minutes for ERPNext site to be created or check `create-site` container logs before opening browser on port `8080`. (username: `Administrator`, password: `admin`)
-
-## Documentation Links
-
-### [Getting Started Guide](docs/getting-started.md)
-
-### [Frequently Asked Questions](https://github.com/frappe/frappe_docker/wiki/Frequently-Asked-Questions)
-
-### [Getting Started](#getting-started)
-
-### [Deployment Methods](docs/01-getting-started/01-choosing-a-deployment-method.md)
-
-### [ARM64](docs/01-getting-started/03-arm64.md)
-
-### [Container Setup Overview](docs/02-setup/01-overview.md)
-
-### [Development](docs/05-development/01-development.md)
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-This repository is only for container related stuff. You also might want to contribute to:
-
-## Resources
-
-- [Frappe framework](https://github.com/frappe/frappe),
-- [ERPNext](https://github.com/frappe/erpnext),
-- [Frappe Bench](https://github.com/frappe/bench).
-
-## License
-
-This repository is licensed under the MIT License. See [LICENSE](LICENSE) for details.
