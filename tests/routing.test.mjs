@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {resolveWorkspaceRoute,canonicalPagePath,workspaceRoutes} from '../public/crm-routing.js';
+import {createWorkspaceScene} from '../public/crm-scene.js';
+test('all module hashes resolve to their own destination and aliases normalize',()=>{for(const route of workspaceRoutes)assert.equal(resolveWorkspaceRoute('#'+route),route);assert.equal(resolveWorkspaceRoute('#dashboard'),'overview');assert.equal(resolveWorkspaceRoute('#client-orders'),'orders');assert.equal(resolveWorkspaceRoute('#ORDERS/'),'orders');});
+test('unknown, malformed and unauthorized module routes fall back safely',()=>{assert.equal(resolveWorkspaceRoute('#missing'),'overview');assert.equal(resolveWorkspaceRoute('#%ZZ'),'overview');assert.equal(resolveWorkspaceRoute('#invoices',['overview','orders']),'overview');});
+test('canonical redirects preserve queries and cannot redirect off-site',()=>{assert.equal(canonicalPagePath('/crm/orders','?review=1'),'/crm?review=1#orders');assert.equal(canonicalPagePath('//external.invalid/'),'/external.invalid/');assert.equal(canonicalPagePath('/\\external.invalid/'),null);assert.equal(canonicalPagePath('/about'),null);});
+const canvas=()=>({fallback:false,classList:{add(){this.owner.fallback=true;}},setAttribute(k,v){this[k]=v;}});
+test('3D module failures degrade to an illustration without failing page initialization',async()=>{const c=canvas();c.classList.owner=c;const s=createWorkspaceScene(c,()=>Promise.reject(Error('GPU module unavailable')));await s.ready;assert.equal(c.fallback,true);assert.match(c['aria-label'],/illustration/);s.update(0,true);s.dispose();});
+test('leaving a page before 3D loads prevents a late renderer from being created',async()=>{const c=canvas();c.classList.owner=c;let finish,created=0;const s=createWorkspaceScene(c,()=>new Promise(resolve=>finish=resolve));await Promise.resolve();s.dispose();finish({createPrecisionScene(){created++;}});await s.ready;assert.equal(created,0);});

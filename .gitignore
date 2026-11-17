@@ -3,3 +3,8 @@ firebase-debug.log
 node_modules/
 qa-*.png
 asset-review.jpg
+data/
+node_modules/
+.env
+*.log
+tmp/

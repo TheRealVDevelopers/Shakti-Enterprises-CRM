@@ -88,3 +88,7 @@ print('Built 8 pages: home, about, services, infrastructure, materials, quality,
 
 
 
+
+# Keep the hand-authored 3D homepage and shared visual treatment on regeneration.
+import subprocess, sys
+subprocess.run([sys.executable, str(ROOT / 'scripts' / 'refresh-pages.py')], check=True)
