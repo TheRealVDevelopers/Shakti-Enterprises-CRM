@@ -92,3 +92,7 @@ print('Built 8 pages: home, about, services, infrastructure, materials, quality,
 # Keep the hand-authored 3D homepage and shared visual treatment on regeneration.
 import subprocess, sys
 subprocess.run([sys.executable, str(ROOT / 'scripts' / 'refresh-pages.py')], check=True)
+
+# Reapply the expanded editorial pages after the legacy brochure generator.
+import runpy
+runpy.run_path(str(Path(__file__).resolve().parent / "scripts" / "expand-website.py"))

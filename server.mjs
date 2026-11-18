@@ -4,6 +4,7 @@ import { resolve,extname,join } from 'node:path';
 import { randomBytes,scryptSync,timingSafeEqual } from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import { Engine,roles,types } from './lib/engine.mjs';
+import {Workspace,unitNames,detectPhoto} from './lib/workspace.mjs';
 import {canonicalPagePath} from './public/crm-routing.js';
 
 const projectRoot=fileURLToPath(new URL('.',import.meta.url));
@@ -11,6 +12,8 @@ const root=resolve(projectRoot,'public'),data=resolve(process.env.DATA_DIR || re
 export const engine=new Engine(join(data,'crm.sqlite'));
 const demo=!process.env.ADMIN_PASSWORD;
 if(demo)engine.seed();
+const workspace=new Workspace(engine);
+const scheduler=setInterval(()=>workspace.runDue(),30000);scheduler.unref();
 const sessions=new Map(),attempts=new Map();
 const password=process.env.ADMIN_PASSWORD || 'shakthi-demo';
 if(!demo&&password.length<14)throw new Error('ADMIN_PASSWORD must have at least 14 characters');
@@ -28,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url.startsWith('/')?'http://localhost'+req.url:req.url,'http://localhost');
     if(url.pathname.startsWith('/api/')){
       if(req.method!=='GET'&&req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`&&req.headers.origin!==`https://${req.headers.host}`)return send(res,403,{error:'Cross-origin requests denied'});
-      if(url.pathname==='/api/config')return send(res,200,{demo,roles:Object.keys(roles)});
+      if(url.pathname==='/api/config')return send(res,200,{demo,roles:Object.keys(roles),unitNames});
       if(url.pathname==='/api/login'&&req.method==='POST'){
         const b=await body(req),key=req.socket.remoteAddress,rate=attempts.get(key)||{count:0,time:Date.now()};if(Date.now()-rate.time>60000){rate.count=0;rate.time=Date.now();}attempts.set(key,rate);if(++rate.count>15)return send(res,429,{error:'Too many attempts. Try again in a minute.'});
         let a,valid=false;
@@ -40,18 +43,21 @@ const server=http.createServer(async(req,res)=>{
       }
       const a=actor(req);
       if(url.pathname==='/api/logout'){const t=/crm_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];sessions.delete(t);res.setHeader('Set-Cookie','crm_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
-      if(url.pathname==='/api/state')return send(res,200,{...engine.snapshot(a),actor:a,demo});
+      if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),unitNames,actor:a,demo});}
+      if(url.pathname==='/api/workspace/status'&&req.method==='POST')return send(res,200,workspace.status(await body(req),a));
+      if(url.pathname.startsWith('/api/workspace/')&&req.method==='POST')return send(res,200,workspace.save(url.pathname.split('/').at(-1),await body(req),a));
       if(url.pathname==='/api/plan') {engine.allowed(a,'plan');return send(res,200,engine.plan(url.searchParams.get('order'),a));}
       if(url.pathname.startsWith('/api/records/')&&req.method==='POST')return send(res,200,engine.save(url.pathname.split('/').at(-1),await body(req),a));
       if(url.pathname.startsWith('/api/actions/')&&req.method==='POST')return send(res,200,engine.act(url.pathname.split('/').at(-1),await body(req),a));
       if(url.pathname==='/api/attachments'&&req.method==='POST'){
-        const b=await body(req);if(!types.includes(b.type))throw new Error('Invalid record type');engine.allowed(a,b.type);engine.scope(a,engine.get(b.type,b.record));
+        const b=await body(req);if(!types.includes(b.type)||['notes','tasks','attachments'].includes(b.type))throw new Error('Invalid record type');engine.allowed(a,b.type);engine.scope(a,engine.get(b.type,b.record));
         if(!/\.(pdf|png|jpg|jpeg|webp|step|stp|csv)$/i.test(b.name))throw new Error('Allowed attachments: PDF, images, STEP and CSV');
         const bytes=Buffer.from(b.content || '','base64');if(bytes.length>5_000_000)throw new Error('Attachment limit is 5 MB');
+        const photo=Boolean(b.photo);const photoMime=detectPhoto(bytes,b.name);if(photo&&(!['components','machines','staff','moulds'].includes(b.type)||!photoMime))throw new Error('Choose a valid PNG, JPEG or WebP photo for a product, machine, mould or employee');
         const id=randomBytes(20).toString('hex'),name=String(b.name).replace(/[^a-zA-Z0-9._ -]/g,'_');writeFileSync(join(data,'uploads',id),bytes);
-        return send(res,200,engine.put('attachments',{id,name,type:b.type,record:b.record,size:bytes.length,unit:a.unit},a,'attachment uploaded'));
+        return send(res,200,engine.put('attachments',{id,name,type:b.type,record:b.record,size:bytes.length,photo,mime:photoMime,unit:engine.get(b.type,b.record).unit||a.unit},a,'attachment uploaded'));
       }
-      if(url.pathname.startsWith('/api/attachments/')){const f=engine.get('attachments',url.pathname.split('/').at(-1));engine.scope(a,engine.get(f.type,f.record));if(['invoices','receipts','credits'].includes(f.type)&&!['admin','accounts'].includes(a.role))return send(res,403,{error:'Access denied'});res.setHeader('Content-Disposition',`attachment; filename="${f.name}"`);return send(res,200,readFileSync(join(data,'uploads',f.id)),'application/octet-stream');}
+      if(url.pathname.startsWith('/api/attachments/')){const f=engine.get('attachments',url.pathname.split('/').at(-1));engine.scope(a,engine.get(f.type,f.record));if(['invoices','receipts','credits'].includes(f.type)&&!['admin','accounts'].includes(a.role))return send(res,403,{error:'Access denied'});const inline=url.searchParams.get('view')==='1'&&f.photo&&f.mime;res.setHeader('Content-Disposition',`${inline?'inline':'attachment'}; filename="${f.name}"`);return send(res,200,readFileSync(join(data,'uploads',f.id)),inline?f.mime:'application/octet-stream');}
       if(url.pathname==='/api/backup'){engine.allowed(a,'*');const snapshot={format:1,at:new Date().toISOString(),settings:engine.settings(),records:Object.fromEntries(types.map(t=>[t,engine.all(t)])),audit:engine.db.prepare('SELECT * FROM audit').all(),attachments:Object.fromEntries(engine.all('attachments').map(f=>[f.id,readFileSync(join(data,'uploads',f.id)).toString('base64')]))};res.setHeader('Content-Disposition','attachment; filename="shakthi-backup.json"');return send(res,200,snapshot);}
       return send(res,404,{error:'Endpoint not found'});
     }

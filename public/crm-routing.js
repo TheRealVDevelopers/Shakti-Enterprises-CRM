@@ -1,4 +1,4 @@
-export const workspaceRoutes=['overview','orders','jobs','production','quality','machines','moulds','stock','materials','purchases','transfers','dispatches','invoices','receipts','followups','clients','components','staff','maintenance','downtime','enquiries','movements','reports','audit','settings'];
+export const workspaceRoutes=['overview','planner','orders','jobs','production','quality','machines','moulds','stock','materials','purchases','transfers','dispatches','invoices','receipts','followups','clients','components','staff','maintenance','downtime','enquiries','movements','reports','audit','settings'];
 const aliases={dashboard:'overview',home:'overview','client-orders':'orders','production-planning':'jobs','raw-materials':'materials','finished-stock':'stock'};
 export function resolveWorkspaceRoute(hash,allowed=workspaceRoutes){
  let requested;try{requested=decodeURIComponent(String(hash||'').replace(/^#/,'' )).replace(/\/+$/,'').toLowerCase();}catch{requested='';}

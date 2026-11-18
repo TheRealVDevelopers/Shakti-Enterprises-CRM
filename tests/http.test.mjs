@@ -35,5 +35,22 @@ test('HTTP authentication, permissions, CSRF, sessions and static routes',async 
   const repeated=await fetch(base+'//about/',{redirect:'manual'});assert.equal(repeated.headers.get('location'),'/about/');
  });
  await t.test('unknown paths remain a recoverable 404 and malformed paths do not crash the server',async()=>{assert.equal((await request('/no-such-page')).status,404);assert.equal((await request('/crm/no-such-module')).status,404);const response=await fetch(base+'/%5c%5cexternal.invalid/');assert.equal(response.status,400);assert.equal((await request('/')).status,200);});
+ await t.test('private notes and task endpoints enforce operations and author boundaries',async()=>{
+  const note=await request('/api/workspace/notes',{title:'Private operator handover',body:'Keep this in tooling.'},op.cookie);assert.equal(note.status,200);assert.equal(note.body.unit,'Unit 1');
+  const state=await request('/api/state',null,op.cookie);assert.ok(state.body.notes.some(n=>n.id===note.body.id));
+  const task=await request('/api/workspace/tasks',{title:'Review drawing',due:'2030-01-01T09:00:00+05:30',unit:'Unit 2'},op.cookie);assert.equal(task.status,200);assert.equal(task.body.unit,'Unit 1');
+  assert.equal((await request('/api/workspace/tasks',{title:'No time'},op.cookie)).status,400);
+  assert.equal((await request('/api/workspace/notes',{id:note.body.id,version:0,title:'Stale'},op.cookie)).status,409);
+ });
+ await t.test('record photos upload, render with authenticated image MIME, and respect operation boundaries',async()=>{
+  const machine=await request('/api/records/machines',{code:'PHOTO-M',name:'Photo machine',unit:'Unit 2',tonnes:180},admin.cookie);assert.equal(machine.status,200);
+  const content='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0YoAAAAASUVORK5CYII=';
+  const photo=await request('/api/attachments',{name:'machine.png',type:'machines',record:machine.body.id,photo:true,content},admin.cookie);assert.equal(photo.status,200);assert.equal(photo.body.photo,true);assert.equal(photo.body.unit,'Unit 2');
+  const r=await fetch(base+'/api/attachments/'+photo.body.id+'?view=1',{headers:{Cookie:admin.cookie}});assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'image/png');assert.match(r.headers.get('content-disposition'),/^inline/);await r.arrayBuffer();
+  assert.equal((await request('/api/attachments/'+photo.body.id+'?view=1')).status,401);
+  assert.equal((await request('/api/attachments/'+photo.body.id+'?view=1',null,op.cookie)).status,403);
+  const fake=await request('/api/attachments',{name:'fake.png',type:'machines',record:machine.body.id,photo:true,content:Buffer.from('<svg/>').toString('base64')},admin.cookie);assert.equal(fake.status,400);
+  const download=await fetch(base+'/api/attachments/'+photo.body.id,{headers:{Cookie:admin.cookie}});assert.match(download.headers.get('content-disposition'),/^attachment/);await download.arrayBuffer();
+ });
  await t.test('logout invalidates the server session',async()=>{await request('/api/logout',{},op.cookie);assert.equal((await request('/api/state',null,op.cookie)).status,401);});
 });
