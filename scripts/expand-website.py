@@ -118,6 +118,3 @@ if sitemap.exists():
 # Keep every generated page on the shared battery identity.
 import runpy
 runpy.run_path(str(root / "scripts" / "apply-battery-theme.py"))
-
-# Restore manufacturing positioning after generating shared pages.
-runpy.run_path(str(root / "scripts" / "apply-injection-home.py"))

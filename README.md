@@ -136,7 +136,3 @@ Drag with a mouse or swipe horizontally on a touch screen to orbit; vertical tou
 Keyboard controls while the canvas is focused: arrow keys rotate, `+` / `-` zoom, `Home` resets the camera, Space toggles auto-rotate, and Escape leaves focus mode. Reduced-motion preferences use immediate pose changes and disable auto-rotation. Renderers stop animating when motion settles, when off screen or when the document is hidden. Shared geometry and part materials reduce duplication, and each scene disposes its controls, textures, environment and listeners when removed.
 
 `public/battery-motion.js` owns the bounds and damped pose interpolation; `public/battery-controls.js` supplies the viewer controls. Motion regression tests cover zoom and pitch limits, convergence without overshoot, immediate reduced-motion changes and shortest-path view rotation.
-
-## Homepage manufacturing focus
-
-The public homepage leads with plastic injection moulding, an interactive mould assembly, the clamp/inject/cool/eject cycle, material and tooling requirements, and the two-unit six-machine register. Battery packing items are one application area; the extended battery anatomy is on /battery-components. The scripts/apply-injection-home.py hook keeps this positioning after page regeneration, using templates/battery-study.html for the dedicated application study.

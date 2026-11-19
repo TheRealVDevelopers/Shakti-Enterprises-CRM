@@ -1,6 +1,6 @@
-import {createPrecisionScene} from './precision-scene.js?v=injection-1';
+import {createHeroBatteryScene} from './hero-battery-scene.js';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const stage=$('#journey'),scene=createPrecisionScene($('#precision-scene'));let expanded=false,manualAssembly=null,pending=false,activeFeature=null;
+const stage=$('#journey'),scene=createHeroBatteryScene($('#precision-scene'));let expanded=false,manualAssembly=null,pending=false,activeFeature=null;
 const clamp=n=>Math.max(0,Math.min(1,n));
 function update(){pending=false;const progress=clamp(-stage.getBoundingClientRect().top/(stage.offsetHeight-innerHeight));scene.update(progress,expanded,manualAssembly);
  const hero=clamp(1-progress/.21),studio=clamp((progress-.18)/.10)*clamp(1-(progress-.43)/.10),detail=clamp((progress-.46)/.13);
@@ -19,14 +19,21 @@ $$('a[href="#discovery"]').forEach(a=>a.addEventListener('click',toDiscovery));
 if(location.hash==='#discovery')requestAnimationFrame(()=>toDiscovery());
 $('#explode-toggle').onclick=()=>{expanded=!expanded;manualAssembly=expanded?1:0;if(!expanded){scene.select?.('case');closeFeature();}$('#explode-toggle').setAttribute('aria-pressed',String(expanded));$('#explode-toggle').innerHTML=expanded?'Bring it together <span>−</span>':'Explore the assembly <span>+</span>';update();};
 const features=[
- ['01 / PART & MATERIAL','Start with the component.','Review the application, material grade, wall geometry, critical dimensions, colour and required quantity before defining the tooling and production process.','/plastic-applications'],
- ['02 / MOULD DEVELOPMENT','The tool shapes the result.','Core and cavity design, cooling, ejection, machining and mould trials bring the approved component into a production-ready tool.','/mould-making'],
- ['03 / INJECTION MOULDING','From polymer to plastic part.','The machine closes the mould, injects and packs the prepared polymer, cools the part and opens for ejection. Process control supports repeatable production.','/machinery'],
- ['04 / INSPECTION & ASSEMBLY','Ready for the next step.','Inspect samples and production against the approved requirement, then finish, assemble and pack accepted components as agreed.','/quality']
+ ['01 / THE OUTER JAR','Strength in the structure.','Explore the tall ribbed outer jar, its moulded walls and the mounting envelope that locates the battery assembly.','/battery-components#case'],
+ ['02 / THE TOP COVER','Every interface, considered.','The black moulded lid brings the case joint, vent housings and terminal interfaces into one connected cover.','/battery-components#lid'],
+ ['03 / VENT ASSEMBLIES','A closer look at the top.','Discover the six vent plugs, their separate housings and the moulded fits shown in the tubular battery study.','/battery-components#vents'],
+ ['04 / INSIDE THE BATTERY','The detail within.','Scroll to separate the cover and vent assemblies, then explore the retainers, separators and cell partitions inside the jar.','/battery-components#retainers'],
+ ['05 / HANDLE GRIPS','Made to be handled.','The side ropes and plastic grips form the handling interface. Explore their fixing points and the approved requirements for the complete assembly.','/battery-components#handles'],
+ ['06 / SEPARATOR ENVELOPES','A closer look inside.','Explore where the separator envelopes sit between the tubular internal elements in this illustrative component study.','/battery-components#separators']
 ];
 function closeFeature(){if($('#feature-panel').hidden)return;$('#feature-panel').hidden=true;$$('[data-feature]').forEach(b=>b.classList.remove('active'));activeFeature=null;}
 $$('[data-feature]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.feature),f=features[i];scene.select?.(b.dataset.heroPart||'case');if(activeFeature===i)return closeFeature();activeFeature=i;$$('[data-feature]').forEach(el=>el.classList.toggle('active',el===b));$('#feature-number').textContent=f[0];$('#feature-title').textContent=f[1];$('#feature-copy').textContent=f[2];$('#feature-link').href=f[3];$('#feature-panel').hidden=false;$('.feature-close').focus({preventScroll:true});}));
+$('#precision-scene').addEventListener('battery-follow-scroll',()=>{manualAssembly=null;expanded=false;$('#explode-toggle').setAttribute('aria-pressed','false');$('#explode-toggle').innerHTML='Explore the assembly <span>+</span>';update();});
+$('#precision-scene').addEventListener('battery-part-select',e=>{const map={case:0,ribs:0,panel:0,handles:4,lid:1,terminals:1,vents:2,housings:2,partitions:3,retainers:3,separators:5};const feature=map[e.detail.part];if(feature!==undefined&&activeFeature!==feature)$(`[data-feature="${feature}"]`)?.click();});
 $('.feature-close').onclick=()=>{const last=activeFeature;closeFeature();$(`[data-feature="${last}"]`)?.focus({preventScroll:true});};
+
+const calloutLayouts={case:[[.46,.75],[.16,.72],[.15,.74]],lid:[[.88,.43],[.85,.36],[.85,.49]],vents:[[.82,.18],[.80,.13],[.83,.39]],retainers:[[.44,.44],[.14,.40],[.13,.57]],handles:[[.89,.75],[.86,.73],[.86,.72]],separators:[[.45,.84],[.17,.85],[.15,.84]]};
+$('#precision-scene').addEventListener('battery-label-positions',event=>{const mobile=innerWidth<760,blend=clamp((event.detail.journey-.44)/.18);for(const [part,point]of Object.entries(event.detail.points)){const button=$(`[data-hero-part="${part}"]`),group=$(`[data-leader="${part}"]`);if(!button||!group)continue;const layout=calloutLayouts[part],xy=mobile?layout[2]:layout[0].map((v,i)=>v+(layout[1][i]-v)*blend);button.style.left=xy[0]*100+'%';button.style.top=xy[1]*100+'%';const line=group.querySelector('line'),circle=group.querySelector('circle');for(const [key,value]of Object.entries({x1:xy[0]*1000,y1:xy[1]*1000,x2:point.x*1000,y2:point.y*1000}))line.setAttribute(key,value);circle.setAttribute('cx',point.x*1000);circle.setAttribute('cy',point.y*1000);}});
 const worldToggle=$('#world-toggle'),worldMenu=$('#world-menu');worldToggle.onclick=()=>{worldMenu.hidden=!worldMenu.hidden;worldToggle.setAttribute('aria-expanded',String(!worldMenu.hidden));};
 document.addEventListener('click',e=>{if(!e.target.closest('.nav-dropdown')){worldMenu.hidden=true;worldToggle.setAttribute('aria-expanded','false');}});
 const menu=$('#full-menu'),menuTrigger=$('.menu-trigger');

@@ -64,7 +64,7 @@ export function createPrecisionScene(canvas,{studio=true}={}){
    leaf.scale.set(.14,height/2,.035);leaf.rotation.z=Math.cos(angle)*.32;leaf.rotation.x=Math.sin(angle)*.25;
   }
  }
- let progress=0,explode=0,targetExplode=0,manualExplode=null,rot=.14,drag=false,last=0,pointer={x:0,y:0},raf=0,visible=true,stopped=false,size={w:0,h:0};
+ let progress=0,explode=0,targetExplode=0,rot=.14,drag=false,last=0,pointer={x:0,y:0},raf=0,visible=true,stopped=false,size={w:0,h:0};
  canvas.tabIndex=0;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Interactive three-dimensional precision mould. Drag or use arrow keys to rotate.');
  canvas.addEventListener('pointerdown',e=>{drag=true;last=e.clientX;canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
  canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width-.5;pointer.y=(e.clientY-r.top)/r.height-.5;if(drag){rot+=(e.clientX-last)*.008;last=e.clientX;}if(reduced)draw(0);});
@@ -74,12 +74,12 @@ export function createPrecisionScene(canvas,{studio=true}={}){
   const mobile=r.width<700,pull=clamp(progress/.38),detail=clamp((progress-.44)/.4);
   const easing=pull*pull*(3-2*pull);camera.position.set(0,studio?0.15:0,studio?smooth(mobile?15:8.6,mobile?20:15,easing):12);camera.lookAt(0,0,0);
   assembly.position.set(0,studio?smooth(mobile?-1.9:-2.6,0.1,easing):0,0);assembly.rotation.set(-.06+pointer.y*.08,rot+pointer.x*.15+detail*.4,.025);assembly.position.y+=reduced?0:Math.sin(time*.00065)*.04;
-  explode=smooth(explode,manualExplode!==null?manualExplode:targetExplode||detail*.9,reduced?1:.07);
+  explode=smooth(explode,targetExplode||detail*.9,reduced?1:.07);
   plates.forEach((plate,i)=>{plate.position.z=(1-i)*(.46+explode*1.45);plate.position.x=(i-1)*explode*.15;});guides.scale.z=1+explode*.3;guides.visible=explode>.12;
   studioGroup.visible=studio&&progress>.12&&progress<.64;if(studio){studioGroup.position.y=smooth(-4,0,easing);studioGroup.position.z=-detail*10;}
   renderer.render(scene,camera);raf=0;if(!reduced&&visible)raf=requestAnimationFrame(draw);
  }
  const resize=new ResizeObserver(()=>{if(reduced||!raf)draw(0);});resize.observe(canvas);
  const observer=new IntersectionObserver(([e])=>{visible=e.isIntersecting;if(visible&&!raf)draw(0);else if(!visible){cancelAnimationFrame(raf);raf=0;}});observer.observe(canvas);draw(0);
- return {update(p,open=false,manual=null){progress=clamp(p);targetExplode=open?1.45:0;manualExplode=manual===null?null:clamp(manual)*1.45;if(reduced)draw(0);},dispose(){stopped=true;cancelAnimationFrame(raf);resize.disconnect();observer.disconnect();scene.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});environment.dispose();texture.dispose();renderer.dispose();}};
+ return {update(p,open=false){progress=clamp(p);targetExplode=open?1.45:0;if(reduced)draw(0);},dispose(){stopped=true;cancelAnimationFrame(raf);resize.disconnect();observer.disconnect();scene.traverse(o=>{o.geometry?.dispose();if(o.material){for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});environment.dispose();texture.dispose();renderer.dispose();}};
 }
