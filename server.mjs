@@ -8,6 +8,10 @@ import {Workspace,unitNames,detectPhoto} from './lib/workspace.mjs';
 import {canonicalPagePath} from './public/crm-routing.js';
 
 const projectRoot=fileURLToPath(new URL('.',import.meta.url));
+const host=process.env.HOST || '127.0.0.1';
+const production=process.env.NODE_ENV==='production';
+if((production||!['127.0.0.1','localhost','::1'].includes(host))&&!process.env.ADMIN_PASSWORD)throw new Error('ADMIN_PASSWORD is required for production or a non-loopback HOST; public demo mode is disabled');
+if(process.env.ADMIN_PASSWORD&&process.env.ADMIN_PASSWORD.length<14)throw new Error('ADMIN_PASSWORD must have at least 14 characters');
 const root=resolve(projectRoot,'public'),data=resolve(process.env.DATA_DIR || resolve(projectRoot,'data'));mkdirSync(data,{recursive:true});mkdirSync(join(data,'uploads'),{recursive:true});
 export const engine=new Engine(join(data,'crm.sqlite'));
 const demo=!process.env.ADMIN_PASSWORD;
@@ -29,6 +33,7 @@ const server=http.createServer(async(req,res)=>{
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   try{
     const url=new URL(req.url.startsWith('/')?'http://localhost'+req.url:req.url,'http://localhost');
+    if(url.pathname==='/healthz'&&req.method==='GET')return send(res,200,{ok:true});
     if(url.pathname.startsWith('/api/')){
       if(req.method!=='GET'&&req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`&&req.headers.origin!==`https://${req.headers.host}`)return send(res,403,{error:'Cross-origin requests denied'});
       if(url.pathname==='/api/config')return send(res,200,{demo,roles:Object.keys(roles),unitNames});
@@ -68,4 +73,4 @@ const server=http.createServer(async(req,res)=>{
   }catch(e){send(res,e.status || 400,{error:e.message});}
 });
 const port=Number(process.env.PORT || 4173);
-server.listen(port,'127.0.0.1',()=>console.log(`Shakthi Enterprises: http://127.0.0.1:${server.address().port}\n${demo?'DEMO MODE: illustrative data, password shakthi-demo. Set ADMIN_PASSWORD and a fresh DATA_DIR for business use.':'Business mode: sign in with configured accounts.'}`));
+server.listen(port,host,()=>console.log(`Shakthi Enterprises: http://${host==='::1'?'[::1]':host}:${server.address().port}\n${demo?'DEMO MODE: illustrative data, password shakthi-demo. Set ADMIN_PASSWORD and a fresh DATA_DIR for business use.':'Business mode: sign in with configured accounts.'}`));

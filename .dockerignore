@@ -1,0 +1,10 @@
+.git
+.firebase
+node_modules
+data
+.env
+.env.*
+*.log
+tmp
+docs/screenshots
+tests
