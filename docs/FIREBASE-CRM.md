@@ -28,3 +28,11 @@ Do not repeat database creation when it already exists. The predeploy script cop
 Verify anonymous API access is rejected, owner sign-in works, sessions survive a cold start, and a private test upload and record remain available after a backend revision change. Check an API backup includes attachment contents. The scheduled runner must use the same durable transaction path as HTTP requests.
 
 The server's local SQLite restore script is not a restore tool for this Firestore-backed deployment. Use a reviewed Firestore backup/restore procedure for managed production data. Never overwrite production with local demo records.
+
+## Live deployment verification — 25 November 2026
+
+The API, scheduled runner, isolated database and Hosting rewrite are deployed. The live URL is https://shakthi-enterprises-2df21.web.app/crm.
+
+Verified production owner sign-in, secure `__session` cookies, anonymous-access rejection, the private eleven-family product catalogue, a byte-for-byte private file round trip through Firestore, persisted session storage, sign-out, and the scheduled runner's successful execution. Temporary verification records and file chunks were removed without changing business balances. Local review records were not imported.
+
+Function container build images have a 30-day retention policy. This policy does not delete CRM records or uploaded files.
