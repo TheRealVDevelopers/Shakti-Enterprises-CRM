@@ -19,6 +19,7 @@ for item in source.iterdir():
         shutil.copy2(item, target / item.name)
 
 page = (target / 'index.html').read_text(encoding='utf-8')
+page = page.replace('<head>', '<head><base href="/factory-tour/">', 1)
 page = page.replace('</head>', '<link rel="stylesheet" href="embed.css"></head>')
 page = page.replace('</body>', '<script src="embed.js"></script></body>')
 page = page.replace('Room index <', 'Room index <')
