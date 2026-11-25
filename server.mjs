@@ -57,7 +57,7 @@ export const server=http.createServer(async(req,res)=>{
       }
       const a=actor(req);
       if(url.pathname==='/api/logout'){const t=sessionToken(req);sessions.delete(t);res.setHeader('Set-Cookie',`${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.SECURE_COOKIES==='1'?'; Secure':''}`);return send(res,200,{ok:true});}
-      if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),productCatalogue:productCatalogue(join(projectRoot,'private/product-catalogue.json'),a),unitNames,actor:a,demo});}
+      if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),productCatalogue:productCatalogue(process.env.PRODUCT_CATALOGUE_FILE||join(projectRoot,'private/product-catalogue.json'),a),unitNames,actor:a,demo});}
       if(url.pathname==='/api/workspace/status'&&req.method==='POST')return send(res,200,workspace.status(await body(req),a));
       if(url.pathname.startsWith('/api/workspace/')&&req.method==='POST')return send(res,200,workspace.save(url.pathname.split('/').at(-1),await body(req),a));
       if(url.pathname==='/api/plan') {engine.allowed(a,'plan');return send(res,200,engine.plan(url.searchParams.get('order'),a));}

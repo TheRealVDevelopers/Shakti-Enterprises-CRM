@@ -21,7 +21,7 @@ npm test
 npx firebase-tools deploy --only firestore,functions,hosting --project shakthi-enterprises-2df21
 ```
 
-Do not repeat database creation when it already exists. The predeploy script copies only application source and the optional private reference catalogue into the function package. It excludes local databases, review sessions and local uploads. The private catalogue can be regenerated with `scripts/import-product-catalogue.py` before deployment; its prices are not imported into orders or stock.
+Do not repeat database creation when it already exists. The predeploy script copies only application source and the optional private reference catalogue into the function package. It excludes local databases, review sessions and local uploads. The production reference catalogue is stored privately in `crmCatalogue/reference` in the named Firestore database. Functions load it on cold start, independently of ignored local files or source packaging. The local catalogue can be regenerated with `scripts/import-product-catalogue.py`; its prices are not imported into orders or stock.
 
 ## Verification and recovery
 

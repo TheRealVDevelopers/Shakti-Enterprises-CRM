@@ -4,6 +4,7 @@ import {defineSecret} from 'firebase-functions/params';
 import {initializeApp} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
 import http from 'node:http';
+import {mkdirSync,writeFileSync} from 'node:fs';
 
 const firebaseApp=initializeApp();
 const adminPassword=defineSecret('SHAKTHI_ADMIN_PASSWORD');
@@ -12,10 +13,15 @@ let runtime;
 async function ready(){
  if(!runtime)runtime=(async()=>{
   Object.assign(process.env,{NODE_ENV:'production',HOST:'127.0.0.1',PORT:'0',DATA_DIR:'/tmp/shakthi-crm',SECURE_COOKIES:'1',SESSION_COOKIE:'__session',FIRESTORE_BACKED:'1',ADMIN_PASSWORD:adminPassword.value()});
+  const database=getFirestore(firebaseApp,'shakthi-crm');
+  const catalogue=await database.collection('crmCatalogue').doc('reference').get();
+  mkdirSync(process.env.DATA_DIR,{recursive:true});
+  process.env.PRODUCT_CATALOGUE_FILE=process.env.DATA_DIR+'/catalogue.json';
+  writeFileSync(process.env.PRODUCT_CATALOGUE_FILE,catalogue.exists?catalogue.data().json:JSON.stringify({families:[]}));
   const application=await import('./runtime/server.mjs');
   if(!application.server.listening)await new Promise(resolve=>application.server.once('listening',resolve));
   const {FirestoreBridge}=await import('./runtime/lib/firestore-bridge.mjs');
-  return {...application,bridge:new FirestoreBridge(getFirestore(firebaseApp,'shakthi-crm'),application.engine,application.sessions,process.env.DATA_DIR)};
+  return {...application,bridge:new FirestoreBridge(database,application.engine,application.sessions,process.env.DATA_DIR)};
  })();
  return runtime;
 }

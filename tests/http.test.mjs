@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdtempSync,readFileSync,readdirSync} from 'node:fs';
+import {mkdtempSync,readFileSync,readdirSync,writeFileSync} from 'node:fs';
 import {join,resolve,extname} from 'node:path';
 import {parseHTML} from 'linkedom';
 import {workspaceRoutes} from '../public/crm-routing.js';
 import {tmpdir} from 'node:os';
 test('HTTP authentication, permissions, CSRF, sessions and static routes',async t=>{
- const child=spawn(process.execPath,['server.mjs'],{cwd:process.cwd(),env:{...process.env,PORT:'0',DATA_DIR:mkdtempSync(join(tmpdir(),'shakthi-http-')),ADMIN_PASSWORD:'test-owner-secret-12345',CRM_USERS:JSON.stringify([{id:'op1',name:'Operator',role:'operator',unit:'Unit 1',password:'test-operator-secret-12345'}])},stdio:['ignore','pipe','pipe']});
+ const catalogueFile=join(mkdtempSync(join(tmpdir(),'shakthi-catalogue-cache-')),'catalogue.json');
+ writeFileSync(catalogueFile,JSON.stringify({families:[{id:'durable-family',name:'Durable reference product',image:'/assets/products/side-baffle.png',variants:[{size:'20 MM',units:['all'],prices:[{value:'3.50'}]}]}]}));
+ const child=spawn(process.execPath,['server.mjs'],{cwd:process.cwd(),env:{...process.env,PORT:'0',PRODUCT_CATALOGUE_FILE:catalogueFile,DATA_DIR:mkdtempSync(join(tmpdir(),'shakthi-http-')),ADMIN_PASSWORD:'test-owner-secret-12345',CRM_USERS:JSON.stringify([{id:'op1',name:'Operator',role:'operator',unit:'Unit 1',password:'test-operator-secret-12345'}])},stdio:['ignore','pipe','pipe']});
  t.after(()=>child.kill());
  const base=await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('Server startup timeout')),15000);child.stdout.on('data',d=>{const m=String(d).match(/http:\/\/127.0.0.1:\d+/);if(m){clearTimeout(timeout);resolve(m[0]);}});child.on('error',reject);child.on('exit',code=>{if(code)reject(Error('Server exited '+code));});});
  const request=async(path,body,cookie,origin)=>{const r=await fetch(base+path,{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...(origin?{Origin:origin}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,cookie:r.headers.get('set-cookie')?.split(';')[0],body:r.headers.get('content-type')?.includes('json')?await r.json():await r.text()};};
@@ -16,6 +18,7 @@ test('HTTP authentication, permissions, CSRF, sessions and static routes',async 
  const admin=await request('/api/login',{username:'admin',password:'test-owner-secret-12345'});assert.equal(admin.status,200);assert.ok(admin.cookie);
  const op=await request('/api/login',{username:'op1',password:'test-operator-secret-12345',role:'admin',unit:'all'});assert.equal(op.status,200);assert.equal(op.body.actor.role,'operator');assert.equal(op.body.actor.unit,'Unit 1');
  await t.test('server ignores submitted role escalation',async()=>{const s=await request('/api/state',null,op.cookie);assert.equal(s.body.actor.role,'operator');assert.equal(s.body.invoices,undefined);});
+ await t.test('catalogue is loaded from the configured durable cache with role-based prices',async()=>{const owner=await request('/api/state',null,admin.cookie);assert.equal(owner.body.productCatalogue.length,1);assert.equal(owner.body.productCatalogue[0].id,'durable-family');assert.equal(owner.body.productCatalogue[0].variants[0].prices[0].value,'3.50');const worker=await request('/api/state',null,op.cookie);assert.equal(worker.body.productCatalogue[0].variants[0].prices.length,0);});
  await t.test('operator cannot write accounting records',async()=>assert.equal((await request('/api/actions/receipt',{amount:1},op.cookie)).status,403));
  await t.test('cross-origin mutation fails',async()=>assert.equal((await request('/api/actions/settings',{currency:'USD'},admin.cookie,'https://external.invalid')).status,403));
  await t.test('admin backup contains all registers and audit',async()=>{const b=await request('/api/backup',null,admin.cookie);assert.equal(b.status,200);assert.equal(b.body.format,1);assert.ok(Array.isArray(b.body.records.orders));});

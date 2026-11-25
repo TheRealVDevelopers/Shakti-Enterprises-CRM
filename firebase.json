@@ -136,7 +136,8 @@
         "node_modules",
         ".git",
         "firebase-debug.log",
-        "firebase-debug.*.log"
+        "firebase-debug.*.log",
+        "runtime/private/**"
       ],
       "predeploy": [
         "node scripts/prepare-firebase.mjs"
