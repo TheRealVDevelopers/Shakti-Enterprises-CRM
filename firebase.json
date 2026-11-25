@@ -116,6 +116,38 @@
           }
         ]
       }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": {
+          "functionId": "crmApi",
+          "region": "asia-south1",
+          "pinTag": true
+        }
+      }
     ]
-  }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "crm",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [
+        "node scripts/prepare-firebase.mjs"
+      ]
+    }
+  ],
+  "firestore": [
+    {
+      "database": "shakthi-crm",
+      "rules": "firestore.crm.rules",
+      "indexes": "firestore.crm.indexes.json"
+    }
+  ]
 }

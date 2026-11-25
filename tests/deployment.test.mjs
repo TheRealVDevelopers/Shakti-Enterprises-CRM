@@ -16,15 +16,15 @@ for(const config of [{name:'production',NODE_ENV:'production',HOST:'127.0.0.1'},
  });
 }
 
-test('production serves website and CRM together and persists records across restart',async t=>{
+for(const sessionCookie of ['crm_session','__session'])test(`production persists records across restart using ${sessionCookie}`,async t=>{
  const data=mkdtempSync(join(tmpdir(),'shakthi-deploy-persist-')),password=randomBytes(24).toString('hex');let child;
  t.after(()=>child?.kill());
  async function start(){
-  child=spawn(process.execPath,['server.mjs'],{env:{...process.env,NODE_ENV:'production',HOST:'0.0.0.0',PORT:'0',DATA_DIR:data,ADMIN_PASSWORD:password,SECURE_COOKIES:'1',CRM_USERS:''},stdio:['ignore','pipe','pipe']});
+  child=spawn(process.execPath,['server.mjs'],{env:{...process.env,NODE_ENV:'production',HOST:'0.0.0.0',PORT:'0',DATA_DIR:data,ADMIN_PASSWORD:password,SECURE_COOKIES:'1',SESSION_COOKIE:sessionCookie,CRM_USERS:''},stdio:['ignore','pipe','pipe']});
   return await new Promise((resolve,reject)=>{let log='';const timeout=setTimeout(()=>reject(Error('Production startup timeout')),15000);child.stdout.on('data',chunk=>{log+=chunk;const match=log.match(/http:\/\/0\.0\.0\.0:(\d+)/);if(match){clearTimeout(timeout);resolve(`http://127.0.0.1:${match[1]}`);}});child.once('error',error=>{clearTimeout(timeout);reject(error);});child.once('exit',code=>{if(code){clearTimeout(timeout);reject(Error('Production server exited'));}});});
  }
  let base=await start();
- async function login(){const response=await fetch(base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password})});assert.equal(response.status,200);assert.match(response.headers.get('set-cookie'),/Secure/);return response.headers.get('set-cookie').split(';')[0];}
+ async function login(){const response=await fetch(base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password})});assert.equal(response.status,200);assert.match(response.headers.get('set-cookie'),/Secure/);assert.ok(response.headers.get('set-cookie').startsWith(sessionCookie+'='));return response.headers.get('set-cookie').split(';')[0];}
  assert.deepEqual(await(await fetch(base+'/healthz')).json(),{ok:true});assert.equal((await(await fetch(base+'/api/config')).json()).demo,false);
  for(const route of ['/','/crm','/catalogue'])assert.equal((await fetch(base+route)).status,200);
  assert.equal((await fetch(base+'/api/state')).status,401);let cookie=await login();

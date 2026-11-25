@@ -12,3 +12,4 @@ tmp/
 .env.*
 
 private/
+functions/runtime/

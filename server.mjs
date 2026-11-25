@@ -18,9 +18,12 @@ const root=resolve(projectRoot,'public'),data=resolve(process.env.DATA_DIR || re
 export const engine=new Engine(join(data,'crm.sqlite'));
 const demo=!process.env.ADMIN_PASSWORD;
 if(demo)engine.seed();
-const workspace=new Workspace(engine);
-const scheduler=setInterval(()=>workspace.runDue(),30000);scheduler.unref();
-const sessions=new Map(),attempts=new Map();
+export const workspace=new Workspace(engine);
+if(process.env.FIRESTORE_BACKED!=='1'){const scheduler=setInterval(()=>workspace.runDue(),30000);scheduler.unref();}
+export const sessions=new Map();
+const attempts=new Map();
+const cookieName=process.env.SESSION_COOKIE==='__session'?'__session':'crm_session';
+const sessionToken=req=>new RegExp(cookieName+'=([a-f0-9]+)').exec(req.headers.cookie || '')?.[1];
 const password=process.env.ADMIN_PASSWORD || 'shakthi-demo';
 if(!demo&&password.length<14)throw new Error('ADMIN_PASSWORD must have at least 14 characters');
 const salt=randomBytes(16),hash=scryptSync(password,salt,64);
@@ -29,8 +32,8 @@ for(const u of users){if(!roles[u.role]||u.role==='admin'||!['Unit 1','Unit 2','
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.woff2':'font/woff2','.ttf':'font/ttf','.pdf':'application/pdf'};
 function send(res,status,body,type='application/json'){res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store'});res.end(type==='application/json'?JSON.stringify(body):body);}
 async function body(req){let s='';for await(const chunk of req){s+=chunk;if(s.length>8_000_000){const e=new Error('Upload exceeds 8 MB request limit');e.status=413;throw e;}}return s?JSON.parse(s):{};}
-function actor(req){const token=/crm_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1],session=sessions.get(token);if(!session||session.expires<Date.now()){const e=new Error('Sign in required');e.status=401;throw e;}return session.actor;}
-const server=http.createServer(async(req,res)=>{
+function actor(req){const token=sessionToken(req),session=sessions.get(token);if(!session||session.expires<Date.now()){const e=new Error('Sign in required');e.status=401;throw e;}return session.actor;}
+export const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   try{
@@ -50,10 +53,10 @@ const server=http.createServer(async(req,res)=>{
         else if(b.username==='admin'){valid=timingSafeEqual(scryptSync(String(b.password || ''),salt,64),hash);a={id:'admin',name:'Owner',role:'admin',unit:'all'};}
         else{const u=users.find(u=>u.id===b.username);if(u){valid=timingSafeEqual(scryptSync(String(b.password || ''),u.salt,64),u.hash);a={id:u.id,name:u.name,role:u.role,unit:u.unit};}}
         if(!valid)return send(res,401,{error:'Invalid sign-in details'});
-        const token=randomBytes(32).toString('hex');sessions.set(token,{actor:a,expires:Date.now()+8*3600000});res.setHeader('Set-Cookie',`crm_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.SECURE_COOKIES==='1'?'; Secure':''}`);return send(res,200,{actor:a,demo});
+        const token=randomBytes(32).toString('hex');sessions.set(token,{actor:a,expires:Date.now()+8*3600000});res.setHeader('Set-Cookie',`${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.SECURE_COOKIES==='1'?'; Secure':''}`);return send(res,200,{actor:a,demo});
       }
       const a=actor(req);
-      if(url.pathname==='/api/logout'){const t=/crm_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];sessions.delete(t);res.setHeader('Set-Cookie','crm_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
+      if(url.pathname==='/api/logout'){const t=sessionToken(req);sessions.delete(t);res.setHeader('Set-Cookie',`${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.SECURE_COOKIES==='1'?'; Secure':''}`);return send(res,200,{ok:true});}
       if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),productCatalogue:productCatalogue(join(projectRoot,'private/product-catalogue.json'),a),unitNames,actor:a,demo});}
       if(url.pathname==='/api/workspace/status'&&req.method==='POST')return send(res,200,workspace.status(await body(req),a));
       if(url.pathname.startsWith('/api/workspace/')&&req.method==='POST')return send(res,200,workspace.save(url.pathname.split('/').at(-1),await body(req),a));
