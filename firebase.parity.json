@@ -1,0 +1,10 @@
+{
+  "firestore": [{"database":"shakthi-crm","rules":"firestore.crm.rules","indexes":"firestore.crm.indexes.json"}],
+  "emulators": {
+    "firestore":{"host":"127.0.0.1","port":8189},
+    "hub":{"host":"127.0.0.1","port":4415},
+    "logging":{"host":"127.0.0.1","port":4515},
+    "ui":{"enabled":false},
+    "singleProjectMode":true
+  }
+}

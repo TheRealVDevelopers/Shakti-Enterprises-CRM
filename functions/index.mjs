@@ -12,7 +12,8 @@ const options={region:'asia-south1',memory:'1GiB',timeoutSeconds:120,maxInstance
 let runtime;
 async function ready(){
  if(!runtime)runtime=(async()=>{
-  Object.assign(process.env,{NODE_ENV:'production',HOST:'127.0.0.1',PORT:'0',DATA_DIR:'/tmp/shakthi-crm',SECURE_COOKIES:'1',SESSION_COOKIE:'__session',FIRESTORE_BACKED:'1',ADMIN_PASSWORD:adminPassword.value()});
+  const directory=process.env.FIRESTORE_EMULATOR_HOST&&process.env.CRM_EMULATOR_DATA_DIR||'/tmp/shakthi-crm';
+  Object.assign(process.env,{NODE_ENV:'production',HOST:'127.0.0.1',PORT:'0',DATA_DIR:directory,SECURE_COOKIES:'1',SESSION_COOKIE:'__session',FIRESTORE_BACKED:'1',ADMIN_PASSWORD:adminPassword.value()});
   const database=getFirestore(firebaseApp,'shakthi-crm');
   const catalogue=await database.collection('crmCatalogue').doc('reference').get();
   mkdirSync(process.env.DATA_DIR,{recursive:true});
@@ -22,7 +23,7 @@ async function ready(){
   if(!application.server.listening)await new Promise(resolve=>application.server.once('listening',resolve));
   const {FirestoreBridge}=await import('./runtime/lib/firestore-bridge.mjs');
   return {...application,bridge:new FirestoreBridge(database,application.engine,application.sessions,process.env.DATA_DIR)};
- })();
+ })().catch(error=>{runtime=undefined;throw error;});
  return runtime;
 }
 
@@ -43,16 +44,13 @@ export const crmApi=onRequest({...options,invoker:'public'},async(request,respon
  try{
   const application=await ready();
   const result=await application.bridge.run(async helpers=>{
-   const path=(request.originalUrl||request.url).split('?')[0];
-   const token=/__session=([a-f0-9]+)/.exec(request.headers.cookie||'')?.[1];
-   const session=application.sessions.get(token),valid=session?.expires>Date.now();
-   if(valid&&path.startsWith('/api/attachments/'))await helpers.download(path.split('/').at(-1));
-   if(valid&&session.actor.role==='admin'&&path==='/api/backup')for(const file of application.engine.all('attachments'))await helpers.download(file.id);
+   const {requiredCloudFiles}=await import('./runtime/lib/cloud-access.mjs');
+   for(const id of requiredCloudFiles(application.engine,application.sessions,request))await helpers.download(id);
    return forward(application,request);
   });
   for(const [name,value] of Object.entries(result.headers))if(!['connection','transfer-encoding','content-length','date'].includes(name)&&value!==undefined)response.setHeader(name,value);
   response.setHeader('Cache-Control','private, no-store');response.status(result.status).send(result.body);
- }catch(error){console.error('CRM request failed',error.code||error.name);response.status(503).json({error:'The workspace is temporarily unavailable. Please retry shortly.'});}
+ }catch(error){if([400,401,403,404,409].includes(error.status))return response.status(error.status).json({error:error.message});console.error('CRM request failed',error.code||error.name);response.status(503).json({error:'The workspace is temporarily unavailable. Please retry shortly.'});}
 });
 
 export const crmTaskRunner=onSchedule({...options,schedule:'every 1 minutes',timeZone:'Asia/Kolkata'},async()=>{

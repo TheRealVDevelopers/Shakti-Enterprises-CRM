@@ -36,3 +36,16 @@ The API, scheduled runner, isolated database and Hosting rewrite are deployed. T
 Verified production owner sign-in, secure `__session` cookies, anonymous-access rejection, the private eleven-family product catalogue, a byte-for-byte private file round trip through Firestore, persisted session storage, sign-out, and the scheduled runner's successful execution. Temporary verification records and file chunks were removed without changing business balances. Local review records were not imported.
 
 Function container build images have a 30-day retention policy. This policy does not delete CRM records or uploaded files.
+
+## Isolated cloud parity check
+
+With Java and the Firebase CLI installed, run:
+
+```powershell
+node scripts/prepare-firebase.mjs
+npx firebase-tools emulators:exec --only firestore --config firebase.parity.json --project demo-shakthi-parity --non-interactive "node scripts/check-cloud-parity.mjs"
+```
+
+The harness refuses real projects and non-loopback emulator hosts. It exercises the actual exported HTTP function and scheduled runner against the Firestore emulator. The 35 successful API checks cover planning, purchasing, material inspection and issue, production, final inspection, dispatch, invoicing, collections, notes, images, backups and restart persistence. It also checks permissions, stale writes and scheduling idempotency. Test data never enters production. Add `--keep-open` to the inner command for an isolated browser preview.
+
+Cloud attachment restoration applies record and finance permissions before reading private chunks. Backups also include the reference product catalogue. A failed cold start can retry on the next request. Deploy both functions and Hosting together so the pinned Hosting rewrite points to the new API revision.
