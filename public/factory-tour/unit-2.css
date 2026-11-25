@@ -1,0 +1,28 @@
+.unit-camera {
+  position:absolute; inset:0; overflow:hidden; isolation:isolate;
+  background:#202622;
+}
+.unit-camera::before {
+  content:""; position:absolute; inset:-24px; z-index:-1;
+  background:linear-gradient(180deg,#10181680,#121818a1),url("assets/unit-2.webp") center / cover;
+  filter:blur(15px);
+}
+.unit-panorama {
+  position:absolute; top:0; left:0; aspect-ratio:2;
+  background:url("assets/unit-2.webp") center / 100% 100%;
+  will-change:transform;
+}
+.unit-panorama.portrait {background-image:url("assets/unit-2-portrait.webp")}
+.unit-panorama.portrait .unit-sign {top:60%}
+.unit-sign {
+  position:absolute; top:82%; transform:translateX(-50%); min-width:44px; min-height:34px;
+  padding:.25rem .72rem; border:1px solid #f7daa68f; border-radius:2px;
+  background:#111b1cbd; color:#fff4db; font:600 .79rem/1.1 var(--tour-mono);
+  box-shadow:0 2px 8px #15191050;
+}
+.unit-sign:hover,.unit-sign:focus-visible { background:#35392b; border-color:#ffe09a; }
+.unit-credit {font-size:.88rem;color:#e8ddc7}
+.unit-credit a {text-decoration:underline;text-underline-offset:3px}
+.tour-stage:has(.unit-camera:not([hidden])) .tour-copy {max-width:460px;}
+@media(max-width:600px){.unit-sign{min-height:36px;font-size:.76rem}}
+@media(prefers-reduced-motion:reduce){.unit-panorama{will-change:auto}}

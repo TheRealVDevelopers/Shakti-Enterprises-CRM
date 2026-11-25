@@ -1,4 +1,6 @@
 import http from 'node:http';
+import {serveMovie} from './lib/media.mjs';
+import {productCatalogue} from './lib/product-catalogue.mjs';
 import { readFileSync,writeFileSync,mkdirSync,existsSync,statSync } from 'node:fs';
 import { resolve,extname,join } from 'node:path';
 import { randomBytes,scryptSync,timingSafeEqual } from 'node:crypto';
@@ -34,6 +36,10 @@ const server=http.createServer(async(req,res)=>{
   try{
     const url=new URL(req.url.startsWith('/')?'http://localhost'+req.url:req.url,'http://localhost');
     if(url.pathname==='/healthz'&&req.method==='GET')return send(res,200,{ok:true});
+    if(url.pathname==='/factory-tour/index.html'){
+      res.setHeader('X-Frame-Options','SAMEORIGIN');
+      res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+    }
     if(url.pathname.startsWith('/api/')){
       if(req.method!=='GET'&&req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`&&req.headers.origin!==`https://${req.headers.host}`)return send(res,403,{error:'Cross-origin requests denied'});
       if(url.pathname==='/api/config')return send(res,200,{demo,roles:Object.keys(roles),unitNames});
@@ -48,7 +54,7 @@ const server=http.createServer(async(req,res)=>{
       }
       const a=actor(req);
       if(url.pathname==='/api/logout'){const t=/crm_session=([a-f0-9]+)/.exec(req.headers.cookie || '')?.[1];sessions.delete(t);res.setHeader('Set-Cookie','crm_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
-      if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),unitNames,actor:a,demo});}
+      if(url.pathname==='/api/state'){workspace.runDue();return send(res,200,{...engine.snapshot(a),...workspace.snapshot(a),productCatalogue:productCatalogue(join(projectRoot,'private/product-catalogue.json'),a),unitNames,actor:a,demo});}
       if(url.pathname==='/api/workspace/status'&&req.method==='POST')return send(res,200,workspace.status(await body(req),a));
       if(url.pathname.startsWith('/api/workspace/')&&req.method==='POST')return send(res,200,workspace.save(url.pathname.split('/').at(-1),await body(req),a));
       if(url.pathname==='/api/plan') {engine.allowed(a,'plan');return send(res,200,engine.plan(url.searchParams.get('order'),a));}
@@ -69,6 +75,7 @@ const server=http.createServer(async(req,res)=>{
     let pathname=decodeURIComponent(url.pathname);if(/[\\\x00-\x1f\x7f]/.test(pathname))return send(res,400,{error:'Invalid page path'});const canonical=canonicalPagePath(pathname,url.search);if(canonical){res.writeHead(308,{Location:canonical,'Cache-Control':'no-store'});return res.end();}
     if(pathname==='/')pathname='/index.html';if(!extname(pathname))pathname+='.html';const file=resolve(root,`.${pathname}`);if(!file.startsWith(root+ '\\')&&!file.startsWith(root+'/'))return send(res,403,{error:'Forbidden'});
     if(!existsSync(file)||!statSync(file).isFile())return send(res,404,readFileSync(join(root,'404.html')),'text/html');
+    if(extname(file).toLowerCase()==='.mp4')return serveMovie(req,res,file);
     send(res,200,readFileSync(file),mime[extname(file).toLowerCase()] || 'application/octet-stream');
   }catch(e){send(res,e.status || 400,{error:e.message});}
 });

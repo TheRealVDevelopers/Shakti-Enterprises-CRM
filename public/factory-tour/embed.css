@@ -1,0 +1,7 @@
+/* The original ZIP keeps its own styles and viewport inside the homepage. */
+html,body{overflow:hidden;overscroll-behavior:none}
+.tour-stage{position:fixed;inset:0}
+.company-return{order:1;margin-left:auto;margin-right:20px;color:#fff9ed;font:12px/1.4 var(--tour-mono);text-decoration:none;padding:8px;border:1px solid #fff5}
+header #indexButton{order:2}
+footer{display:none}
+@media(max-width:600px){.company-return{font-size:10px;margin-right:8px;padding:6px}.brand{gap:7px;font-size:13px}.brand i{width:20px}}

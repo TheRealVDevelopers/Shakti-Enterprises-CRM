@@ -23,7 +23,7 @@ def neutralise(match):
 # Legacy component styles contain literal greens. Move those to the neutral
 # substrate; the shared theme owns red actions and semantic status colours.
 for path in public.glob('*.css'):
-    if path.name=='battery-theme.css': continue
+    if path.name in ['battery-theme.css','factory-identity.css']: continue
     content=path.read_text(encoding='utf-8')
     content=re.sub(r'#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![0-9a-fA-F])',neutralise,content)
     path.write_text(content,encoding='utf-8')
@@ -32,10 +32,10 @@ def apply(path):
     html=path.read_text(encoding='utf-8')
     html=html.replace('✳','ϟ')
     html=html.replace('/assets/logo.webp','/assets/shakthi-battery-wordmark.svg')
-    html=re.sub(r'<link rel="stylesheet" href="/battery-theme.css">','',html)
-    html=html.replace('</head>','<link rel="stylesheet" href="/battery-theme.css"></head>')
+    html=re.sub(r'<link rel="stylesheet" href="/(?:battery-theme|factory-identity).css">','',html)
+    html=html.replace('</head>','<link rel="stylesheet" href="/battery-theme.css"><link rel="stylesheet" href="/factory-identity.css"></head>')
     path.write_text(html,encoding='utf-8')
 
 for path in public.glob('*.html'):apply(path)
 apply(root/'templates'/'index.html')
-print('Applied the shared graphite, white and signal-red battery identity to all public pages.')
+print('Applied the shared charcoal, ivory and gold factory identity to all public pages.')

@@ -1,0 +1,80 @@
+.film:has(.sample-drawer) {
+  isolation: isolate;
+}
+
+.sample-drawer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sample-drawer-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #5a5a51 url('assets/resin-drawer.webp') 0 0 / 100% 100% no-repeat;
+  will-change: transform;
+}
+.mould-bench { background: #222321; }
+@media (max-width: 600px) and (orientation: portrait) {
+  .tour-stage:has(.mould-bench:not([hidden])) .equipment-tag {
+    --card-y:clamp(120px, max(54svh,calc(var(--pin-y) + 28px)),calc(100% - 302px));
+  }
+}
+
+.sample-drawer .sample-drawer-plate {
+  position: absolute;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  appearance: none;
+  min-width: 46px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid rgb(245 243 218 / 66%);
+  border-radius: 2px;
+  background: rgb(26 35 34 / 84%);
+  color: #fff9e7;
+  font: 600 13px/1.15 var(--tour-mono, monospace);
+  letter-spacing: .055em;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px #10191970;
+  cursor: pointer;
+}
+
+.sample-drawer .sample-drawer-plate[aria-pressed='true'] {
+  border-color: #ffe2a6;
+  color: #ffe2a6;
+  background: #192323ed;
+}
+
+.sample-drawer .sample-drawer-plate:hover,
+.sample-drawer .sample-drawer-plate:focus-visible {
+  outline: 2px solid #ffdf9d;
+  outline-offset: 2px;
+}
+
+.sample-drawer-detail {
+  margin: 0 0 18px;
+}
+
+.sample-drawer-crop {
+  margin-inline: auto;
+  max-width: min(100%, 330px);
+  background: #565850 url('assets/resin-drawer.webp') no-repeat;
+  background-size: 500% 300%;
+}
+
+.sample-drawer-detail figcaption {
+  margin-top: .5rem;
+  color: #f0dab1;
+  font: 14px/1.4 var(--tour-mono, monospace);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .sample-drawer .sample-drawer-plate {
+    min-height: 40px;
+  }
+}
