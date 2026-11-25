@@ -45,6 +45,6 @@ test('homepage navigation and preserved expertise initialize with the factory to
  const location={hash:''},context=vm.createContext({document,window,location,history:{replaceState(a,b,hash){location.hash=hash;}},innerHeight:900,innerWidth:1440,matchMedia:()=>({matches:true}),addEventListener:window.addEventListener.bind(window),requestAnimationFrame:fn=>fn(0),IntersectionObserver:class{observe(){}unobserve(){}},performance:{now:()=>0},__dispose:()=>disposed++});
  const source=readFileSync(new URL('../public/landing.js',import.meta.url),'utf8').replace("import {createHeroBatteryScene} from './hero-battery-scene.js';",'const createHeroBatteryScene=()=>({update(){},dispose:__dispose});');vm.runInContext(source,context);
  document.querySelector('#world-toggle').click();assert.equal(document.querySelector('#world-menu').hidden,false);document.querySelector('.menu-trigger').click();assert.equal(document.querySelector('#full-menu').hidden,false);document.querySelector('.menu-close').click();assert.equal(document.querySelector('#full-menu').hidden,true);
- assert.ok(document.querySelector('#factory-tour'));assert.equal(document.querySelector('#factory-tour').getAttribute('src'),'/factory-tour/index.html');
+ assert.ok(document.querySelector('#factory-tour'));assert.equal(document.querySelector('#factory-tour').getAttribute('src'),'/factory-tour/index.html?v=smooth-2');
  document.querySelector('[data-tab="1"]').click();assert.match(document.querySelector('#expertise-title').textContent,/tool shapes/);
 });

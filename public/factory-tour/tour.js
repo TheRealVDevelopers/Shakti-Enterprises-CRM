@@ -30,13 +30,14 @@ let ready=false;
 let failed=false;
 let lastFrame=-1;
 let forceStill=false;
+let renderedStory=null,lastRender=performance.now();
 
 function selectMovie() {
   ready=false;
   failed=false;
   lastFrame=-1;
   film.classList.remove('film-ready');
-  video.src='film/factory-'+(narrow.matches?'portrait':'wide')+'.mp4?edition=tool-bench-route';
+  video.src='film/factory-'+(narrow.matches?'portrait':'wide')+'-web.mp4';
   updatePoster();
   video.load();
   schedule();
@@ -172,7 +173,11 @@ $('.tag-next').onclick=()=>selectCard(displayed.index+1);
 $('.tag-details').onclick=()=>$('#inspect').onclick();
 function render() {
   scheduled=false;
-  const story=Math.max(0,Math.min(1,(scrollY-tour.offsetTop)/Math.max(1,tour.offsetHeight-stage.offsetHeight)))*storyDuration;
+  const targetStory=Math.max(0,Math.min(1,(scrollY-tour.offsetTop)/Math.max(1,tour.offsetHeight-stage.offsetHeight)))*storyDuration;
+  const now=performance.now();
+  const story=smoothTourStory(renderedStory,targetStory,now-lastRender,reduced.matches);
+  renderedStory=story;lastRender=now;
+  if(story!==targetStory)schedule();
   wanted=movieAtStory(story);
   const i=closestScene(wanted);
   if (current!==i) {

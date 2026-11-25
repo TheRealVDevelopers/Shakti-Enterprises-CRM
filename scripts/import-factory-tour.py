@@ -21,9 +21,10 @@ for item in source.iterdir():
 page = (target / 'index.html').read_text(encoding='utf-8')
 page = page.replace('<head>', '<head><base href="/factory-tour/">', 1)
 page = page.replace('</head>', '<link rel="stylesheet" href="embed.css"></head>')
+page = page.replace('<script src="tour.js?v=bench-route">', '<script src="tour-motion.js"></script><script src="tour.js?v=web-smooth-v2">')
 page = page.replace('</body>', '<script src="embed.js"></script></body>')
 page = page.replace('Room index <', 'Room index <')
-page = page.replace('</header>', '<a class="company-return" href="/#capabilities" target="_top">Company &amp; CRM</a></header>', 1)
+page = page.replace('</header>', '<a class="company-return" href="/crm" target="_top">CRM workspace</a></header>', 1)
 (target / 'index.html').write_text(page, encoding='utf-8')
 
 for name in ['public/index.html', 'templates/index.html']:
@@ -33,7 +34,7 @@ for name in ['public/index.html', 'templates/index.html']:
         continue
     start = html.index('<section class="product-journey"')
     end = html.index('<section class="mission"', start)
-    replacement = '<section id="journey" class="factory-tour-shell" aria-label="Interactive factory walkthrough"><div class="factory-tour-sticky"><iframe id="factory-tour" title="Shakthi factory tour — scroll to explore" src="/factory-tour/index.html" allow="autoplay" loading="eager"></iframe></div></section>'
+    replacement = '<section id="journey" class="factory-tour-shell" aria-label="Interactive factory walkthrough"><div class="factory-tour-sticky"><iframe id="factory-tour" title="Shakthi factory tour — scroll to explore" src="/factory-tour/index.html?v=smooth-2" allow="autoplay" loading="eager"></iframe></div></section>'
     html = html[:start] + replacement + html[end:]
     html = html.replace('id="capabilities"', 'id="capabilities"')
     html = html.replace('href="#discovery"', 'href="#capabilities"')
@@ -80,3 +81,11 @@ for path in target.glob('*'):
         text = text[:start] + "    if(displayed.stop.unit) {\n      const credit=document.createElement('p');credit.textContent='Illustrated factory walkthrough. The current machine register is preserved on the company machinery page.';body.append(credit);" + text[end:]
         text = text.replace('The catalogue groups six presses by clamp force. Maximum shot weights are approximate and depend on resin, geometry and mould design.', 'The operating register is unchanged. Confirm mould fit, shot capability and material before scheduling a job.')
     path.write_text(text, encoding='utf-8')
+
+# Preserve the web seek and optical easing improvements when reimporting the ZIP.
+p = target / 'tour.js'
+s = p.read_text(encoding='utf-8')
+s = s.replace("let forceStill=false;", "let forceStill=false;\nlet renderedStory=null,lastRender=performance.now();")
+s = s.replace("+'.mp4?edition=tool-bench-route'", "+'-web.mp4'")
+s = s.replace("  const story=Math.max(0,Math.min(1,(scrollY-tour.offsetTop)/Math.max(1,tour.offsetHeight-stage.offsetHeight)))*storyDuration;", "  const targetStory=Math.max(0,Math.min(1,(scrollY-tour.offsetTop)/Math.max(1,tour.offsetHeight-stage.offsetHeight)))*storyDuration;\n  const now=performance.now();\n  const story=smoothTourStory(renderedStory,targetStory,now-lastRender,reduced.matches);\n  renderedStory=story;lastRender=now;\n  if(story!==targetStory)schedule();")
+p.write_text(s, encoding='utf-8')

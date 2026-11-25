@@ -122,6 +122,14 @@ input:focus,select:focus,textarea:focus{border-color:#967937!important;box-shado
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}.story-card:hover{transform:none}}
 @media print{body,.shell,.panel,.kpi,th,td{background:#fff!important;color:#000!important;box-shadow:none!important}}
 .product-catalogue{margin:25px 0 40px}
+.workspace-connection{min-height:100svh;padding:40px max(24px,8vw);background:radial-gradient(ellipse at 90% 30%,#d9bf7c20,transparent 60%),var(--factory-cream)}
+.workspace-connection>.wordmark{display:flex;gap:15px;align-items:center;color:var(--factory-charcoal)}
+.workspace-connection>.wordmark small{display:block;font-size:10px;letter-spacing:.2em}
+.workspace-connection>section{max-width:700px;margin:12vh 0 0}
+.workspace-connection h1{font:400 clamp(38px,6vw,76px)/1.05 Georgia,serif;letter-spacing:-.045em;margin:20px 0}
+.workspace-connection section>p{max-width:600px;font-size:17px;color:var(--factory-muted)}
+.workspace-connection .notice{margin:28px 0;padding:20px 24px}
+.workspace-connection .notice p{font-size:14px;margin:8px 0 0}
 .product-catalogue-heading{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:18px}
 .product-catalogue-heading h2{font:400 clamp(30px,3.5vw,48px)/1.05 Georgia,serif;margin:10px 0 16px;letter-spacing:-.04em}
 .product-catalogue-heading p{max-width:550px;font-size:14px;color:var(--factory-muted)}
